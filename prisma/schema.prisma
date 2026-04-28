@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("NURSE")
+  specialty String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedPatients  Patient[]     @relation("PrimaryProvider")
+  carePlansCreated  CarePlan[]    @relation("CarePlanCreator")
+  tasksAssigned     Task[]        @relation("TaskAssignee")
+  tasksCreated      Task[]        @relation("TaskCreator")
+  appointments      Appointment[] @relation("ProviderAppointments")
+  messagesSent      Message[]     @relation("MessageSender")
+  messagesReceived  Message[]     @relation("MessageReceiver")
+  patientProfile    Patient?      @relation("PatientUser")
+}
+
+model Patient {
+  id                String    @id @default(cuid())
+  mrn               String    @unique
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  gender            String
+  phone             String?
+  email             String?
+  address           String?
+  emergencyContact  String?
+  bloodType         String?
+  allergies         String?
+  conditions        String?
+  medications       String?
+  riskLevel         String    @default("LOW")
+  riskScore         Int       @default(0)
+  insuranceId       String?
+  insuranceProvider String?
+  notes             String?
+  isActive          Boolean   @default(true)
+  admissionDate     DateTime?
+  dischargeDate     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  primaryProviderId String?
+  primaryProvider   User?     @relation("PrimaryProvider", fields: [primaryProviderId], references: [id])
+
+  userId String? @unique
+  user   User?   @relation("PatientUser", fields: [userId], references: [id])
+
+  carePlans    CarePlan[]
+  appointments Appointment[]
+  tasks        Task[]
+  vitals       Vital[]
+}
+
+model CarePlan {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("ACTIVE")
+  goals       String?
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  creatorId String
+  creator   User   @relation("CarePlanCreator", fields: [creatorId], references: [id])
+
+  tasks         Task[]
+  interventions Intervention[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("PENDING")
+  priority    String    @default("MEDIUM")
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  creatorId String
+  creator   User   @relation("TaskCreator", fields: [creatorId], references: [id])
+
+  carePlanId String?
+  carePlan   CarePlan? @relation(fields: [carePlanId], references: [id])
+}
+
+model Appointment {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("SCHEDULED")
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  type        String    @default("Follow-up")
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  providerId String
+  provider   User   @relation("ProviderAppointments", fields: [providerId], references: [id])
+}
+
+model Intervention {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  frequency   String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  carePlanId String
+  carePlan   CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+}
+
+model Vital {
+  id               String   @id @default(cuid())
+  systolic         Int?
+  diastolic        Int?
+  heartRate        Int?
+  temperature      Float?
+  oxygenSaturation Int?
+  weight           Float?
+  bloodGlucose     Int?
+  recordedAt       DateTime @default(now())
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  subject   String
+  body      String
+  isUrgent  Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  senderId String
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+
+  receiverId String
+  receiver   User   @relation("MessageReceiver", fields: [receiverId], references: [id])
+
+  replies MessageReply[]
+}
+
+model MessageReply {
+  id        String   @id @default(cuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  senderId String
+}
