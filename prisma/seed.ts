@@ -1,12 +1,8 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
 
-const dbUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const adapter = new PrismaBetterSqlite3({ url: dbUrl });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const prisma = new PrismaClient({ adapter } as any);
+const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding MediNexus...");
